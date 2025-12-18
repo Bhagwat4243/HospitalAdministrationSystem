@@ -159,5 +159,117 @@ namespace HospitalManagementSystem.AppApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while downloading the prescription PDF.");
             }
         }
+        [HttpGet("GetPendingLabTestsForPayment")]
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> GetPendingLabTestsForPayment()
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(patientId))
+            {
+                return Unauthorized("Invalid token or user ID not found.");
+            }
+            try
+            {
+                var pendingTests = await _patientService.GetPendingLabTestsForPaymentAsync(patientId);
+                return Ok(pendingTests);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching pending lab tests for payment.");
+            }
+        }
+        [HttpGet("PayForLabTests")]
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> PayForLabTests([FromBody] LabTestPaymentRequestDto dto)
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(patientId))
+            {
+                return Unauthorized("Invalid token or user ID not found.");
+            }
+            if (dto == null || string.IsNullOrEmpty(dto.PaymentMethod) || dto.PaidAmount <= 0)
+            {
+                return BadRequest("Invalid payment details.");
+            }
+            try
+            {
+                var result = await _patientService.PayForLabTestsAsync(dto, patientId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while processing the lab test payment.");
+            }
+        }
+        [HttpGet("GetCompletedLabResults")]
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> GetCompletedLabResults()
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(patientId))
+            {
+                return Unauthorized("Invalid token or user ID not found.");
+            }
+            try
+            {
+                var completedResults = await _patientService.GetCompletedLabResultsAsync(patientId);
+                return Ok(completedResults);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching completed lab results.");
+            }
+        }
+        [HttpGet("DownloadLabReport")]
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> DownloadLabReport(Guid labTestId)
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(patientId))
+            {
+                return Unauthorized("Invalid token or user ID not found.");
+            }
+            try
+            {
+                var fileDto = await _patientService.DownloadLabReportAsync(labTestId, patientId, new List<string> { "Patient" });
+                if (fileDto == null || fileDto.FileBytes == null || fileDto.FileBytes.Length == 0)
+                {
+                    return NotFound("Lab report not found or no file available.");
+                }
+                return File(fileDto.FileBytes, fileDto.ContentType, fileDto.FileName);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while downloading the lab report.");
+            }
+        }
+        [HttpGet("GetPrescriptionById")]
+        [Authorize(Roles = "Patient")]
+        public async Task<IActionResult> GetPrescriptionById(Guid prescriptionId)
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(patientId))
+            {
+                return Unauthorized("Invalid token or user ID not found.");
+            }
+            try
+            {
+                var prescription = await _patientService.GetPrescriptionByIdAsync(patientId, prescriptionId);
+                if (prescription == null)
+                {
+                    return NotFound("Prescription not found.");
+                }
+                return Ok(prescription);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching the prescription.");
+            }
+        }
     }
 }

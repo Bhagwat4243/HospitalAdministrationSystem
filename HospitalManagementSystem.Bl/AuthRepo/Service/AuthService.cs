@@ -77,7 +77,8 @@ namespace HospitalManagementSystem.Bl.AuthRepo.Service
                 var loginResponse = new LoginResponseDto
                 {
                     user = UserDto,
-                    Token = tokenGenerator.GenerateToken(user, roles)
+                    Token = tokenGenerator.GenerateToken(user, roles),
+                    roles = roles.ToList()
                 };
                 return loginResponse;
             }

@@ -9,5 +9,8 @@ namespace HospitalManagementSystem.Bl.AppRepo.LabTechnician.IService
 {
     public interface ILabTechnicianService
     {
+        Task<List<PatientLabTestGroupDto>> GetReadyLabTestsAsync();
+        Task<LabTestStartResponseDto> StartLabTestAsync(Guid labTestId);
+        Task<LabTestResultResponseDto> SubmitLabTestResultAsync(Guid labTestId, LabTestResultUploadDto dto);
     }
 }

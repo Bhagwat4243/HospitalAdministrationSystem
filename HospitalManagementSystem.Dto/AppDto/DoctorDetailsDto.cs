@@ -18,5 +18,6 @@ namespace HospitalManagementSystem.Dto.AppDto
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public string RoomNumber { get; set; }
+        public decimal ConsultantFee { get; set; }
     }
 }

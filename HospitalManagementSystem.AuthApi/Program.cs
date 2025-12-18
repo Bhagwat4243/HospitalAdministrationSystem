@@ -29,9 +29,22 @@ namespace HospitalManagementSystem.AuthApi
             .AddEntityFrameworkStores<HMSDbContext>()
             .AddDefaultTokenProviders();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
             builder.Services.Configure<JwtOptions>(
           builder.Configuration.GetSection("ApiSettings:JwtOptions"));
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+            // CORS policy
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
 
             var app = builder.Build();
 
@@ -43,7 +56,8 @@ namespace HospitalManagementSystem.AuthApi
             }
 
             app.UseHttpsRedirection();
-
+            app.UseCors("AllowAll");
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

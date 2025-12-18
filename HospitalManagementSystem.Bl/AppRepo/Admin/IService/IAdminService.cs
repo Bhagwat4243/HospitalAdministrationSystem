@@ -16,6 +16,10 @@ namespace HospitalManagementSystem.Bl.AppRepo.Admin.IService
         Task<List<NurseDetailsDto>> GetAllNurse();
         Task<List<AppointmentDto>> GetAllAppointment();
         Task<LabTestDto>CreateLabTest(LabTestDto labTestDto);
-
+        Task<List<LabTestDto>> GetAllLabTests();
+        Task<string> AddNewLabTest(LabTestDto labTestDto);
+        Task<List<AppointmentResponseDto>> GetPendingAppointmentsAsync();
+        Task<string> ConfirmAppointmentByAdminAsync(Guid appointmentId);
+        Task<string> CancelAppointmentByAdminAsync(Guid appointmentId, string? cancelReason = null);
     }
 }

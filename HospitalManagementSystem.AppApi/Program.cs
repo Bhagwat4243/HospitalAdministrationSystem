@@ -1,4 +1,3 @@
-
 using HospitalManagementSystem.AppApi.Extension;
 using HospitalManagementSystem.Bl.AppRepo.Admin.Implementation;
 using HospitalManagementSystem.Bl.AppRepo.Admin.IService;
@@ -26,28 +25,38 @@ namespace HospitalManagementSystem.AppApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            // Add services to the container
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
             builder.Services.AddDbContext<HMSDbContext>(option =>
             {
                 option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
                     opt => opt.MigrationsAssembly("HospitalManagementSystem.AppApi"));
             });
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<HMSDbContext>()
+                .AddDefaultTokenProviders();
+
             builder.Services.AddAuthentication();
             builder.AddTokenConfiguration();
+
             builder.Services.AddScoped<IAdminService, AdminService>();
             builder.Services.AddScoped<IPatientService, PatientService>();
-            builder.Services.AddScoped<IDoctorService,DoctorService>();
+            builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddScoped<ILabTechnicianService, LabTechnicianService>();
             builder.Services.AddScoped<IPdfGenerate, PdfGenerate>();
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddHttpContextAccessor();
+
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // Configure HTTP request pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -56,8 +65,8 @@ namespace HospitalManagementSystem.AppApi
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();   // Add this line
             app.UseAuthorization();
-
 
             app.MapControllers();
 

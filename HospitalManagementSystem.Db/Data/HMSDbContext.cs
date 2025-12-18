@@ -58,5 +58,7 @@ namespace HospitalManagementSystem.Db.Data
         public DbSet<LabTest> LabTest_Tbl { get; set; }
         public DbSet<PatientLabTest> PatientLabTest_Tbl { get; set; }
         public DbSet<AppointmentPayment> AppointmentPayment_Tbl { get; set; }
+        public DbSet<LabTestPayment> LabTestPayment_Tbl { get; set; }
+        public DbSet<LabTestPaymentMapping> LabTestPaymentMapping_Tbl { get; set; }
     }
 }

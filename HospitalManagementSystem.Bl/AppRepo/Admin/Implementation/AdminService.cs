@@ -1,7 +1,11 @@
-﻿using HospitalManagementSystem.Bl.AppRepo.Admin.IService;
+﻿using AutoMapper;
+using HospitalManagementSystem.Bl.AppRepo.Admin.IService;
+using HospitalManagementSystem.Bl.AuthRepo.IService;
 using HospitalManagementSystem.Db.Data;
 using HospitalManagementSystem.Db.Model.AppModel;
+using HospitalManagementSystem.Db.Model.AuthModel;
 using HospitalManagementSystem.Dto.AppDto;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,9 +18,17 @@ namespace HospitalManagementSystem.Bl.AppRepo.Admin.Implementation
     public class AdminService : IAdminService
     {
         private readonly HMSDbContext _hMSDbContext;
-        public AdminService(HMSDbContext hMSDbContext)
+        private readonly IMapper _mapper;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IEmailService _emailService;
+        public AdminService(HMSDbContext hMSDbContext,IMapper mapper, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IEmailService _emailService)
         {
             _hMSDbContext = hMSDbContext;
+            _emailService = _emailService;
+            _mapper = mapper;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public async Task<List<ChemistDetailsDto>> GetAllChemist()
@@ -303,6 +315,196 @@ namespace HospitalManagementSystem.Bl.AppRepo.Admin.Implementation
             {
                 throw;
             }
+        }
+
+        public async Task<List<LabTestDto>> GetAllLabTests()
+        {
+            try
+            {
+                var allLabTests = await _hMSDbContext.LabTest_Tbl.ToListAsync();
+                if (allLabTests == null || !allLabTests.Any())
+                {
+                    throw new Exception("No lab tests found.");
+                }
+                var labTestDtos = _mapper.Map<List<LabTestDto>>(allLabTests);
+                return labTestDtos;
+            }
+            catch(Exception ex)
+            {
+                throw new Exception();
+            }
+        }
+
+        public async Task<string> AddNewLabTest(LabTestDto labTestDto)
+        {
+            try
+            {
+                if (labTestDto == null || string.IsNullOrWhiteSpace(labTestDto.TestName))
+                {
+                    throw new ArgumentNullException(nameof(labTestDto), "Lab test details cannot be null or empty.");
+                }
+
+                // Check for duplicate test name (case-insensitive)
+                var isDuplicate = await _hMSDbContext.LabTest_Tbl
+                    .AnyAsync(t => t.TestName.ToLower() == labTestDto.TestName.ToLower());
+
+                if (isDuplicate)
+                {
+                    throw new InvalidOperationException("A lab test with the same name already exists.");
+                }
+
+                // Create entity and map
+                var newTest = _mapper.Map<LabTest>(labTestDto);
+                newTest.UpdatedAt = null;
+                newTest.CreatedAt = DateTime.Now; // Set the creation date to now
+                newTest.IsActive = true;
+
+                await _hMSDbContext.LabTest_Tbl.AddAsync(newTest);
+                await _hMSDbContext.SaveChangesAsync();
+
+                return $"Lab test added successfully.";
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+        }
+
+        public async Task<List<AppointmentResponseDto>> GetPendingAppointmentsAsync()
+        {
+            try
+            {
+                var pendingAppointments = await _hMSDbContext.Appointment_Tbl
+                 .Where(a => a.Status == AppointmentStatus.Pending)
+                 .Include(a => a.Doctor)
+                 .Include(a => a.Patient)
+                 .Select(a => new AppointmentResponseDto
+                 {
+                     AppointmentId = a.AppointmentId,
+                     DoctorId = a.DoctorId,
+                     DoctorName = a.Doctor.Name,
+                     PatientId = a.PatientId,
+                     PatientName = a.Patient.Name,
+                     PatientGender = a.Patient.Gender,
+                     PatientAge = a.Patient.Age,
+                     AppointmentDate = a.AppointmentDate,
+                     Remark = a.Remark,
+                     Status = a.Status.ToString(),
+                     BookingDate = a.BookingDate
+                 })
+                 .ToListAsync();
+
+                return pendingAppointments;
+            }
+            catch(Exception ex)
+            {
+                throw new Exception();
+            }
+        }
+
+        public async Task<string> ConfirmAppointmentByAdminAsync(Guid appointmentId)
+        {
+
+            using var transaction = await _hMSDbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var appointment = await _hMSDbContext.Appointment_Tbl.Include(d => d.Doctor)
+                    .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+                if (appointment == null)
+                    throw new Exception("Appointment not found.");
+
+                if (appointment.Status != AppointmentStatus.Pending)
+                    throw new Exception("Only pending appointments can be confirmed.");
+
+                var consultantFee = await _hMSDbContext.Doctor_Tbl
+                    .Where(d => d.UserId == appointment.DoctorId)
+                    .Select(d => d.ConsultantFee)
+                    .FirstOrDefaultAsync();
+
+                appointment.Status = AppointmentStatus.Confirmed;
+                appointment.UpdatedAt = DateTime.Now;
+
+                _hMSDbContext.Appointment_Tbl.Update(appointment);
+                await _hMSDbContext.SaveChangesAsync();
+
+                // Send email to patient
+                var patient = await _userManager.FindByIdAsync(appointment.PatientId);
+                if (patient == null)
+                {
+                    throw new Exception("Patient not found for the appointment.");
+                }
+                string body = $@"
+                <p>Dear <strong>{patient.Name}</strong>,</p>
+
+                <p>Your appointment request has been <strong style='color:green;'>Confirmed</strong> successfully.</p>
+
+                <p><strong>Appointment Details:</strong></p>
+                   <ul>
+                       <li><strong>Doctor ID:</strong> {appointment.DoctorId}</li>
+                       <li><strong>Doctor Name:</strong> {appointment.Doctor.Name}</li>
+                       <li><strong>Consultant Fee<strong> {consultantFee}</li>
+                   </ul>
+
+                <p style='margin-top:10px;'>To proceed your appointment, please complete the payment as soon as possible.The consultation with your doctor will only be valid after the payment is successfully made.</p>
+
+                <p><strong>Note:</strong> You will receive a confirmation email and access to your appointment details once your payment is verified/fully paid.</p>
+
+                 <br />
+                <p>Thank you for choosing <strong>Hospital Management System</strong>.</p>
+                <p>We wish you good health!</p>
+                ";
+
+                await _emailService.SendEmailAsync(patient.Email, "Appointment Confirmed", body);
+
+                await transaction.CommitAsync();
+
+                return "Appointment confirmed successfully.";
+            }
+            catch(Exception ex)
+            {
+                throw new Exception();
+            }
+        }
+
+        public async Task<string> CancelAppointmentByAdminAsync(Guid appointmentId, string? cancelReason = null)
+        {
+           
+                using var transaction = await _hMSDbContext.Database.BeginTransactionAsync();
+                try
+                {
+                    var appointment = await _hMSDbContext.Appointment_Tbl.FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+                    if (appointment == null)
+                        throw new Exception("Appointment not found.");
+
+                    if (appointment.Status != AppointmentStatus.Pending)
+                        throw new Exception("Only pending appointments can be cancelled.");
+
+                    appointment.Status = AppointmentStatus.Cancelled;
+                    appointment.UpdatedAt = DateTime.Now;
+
+                    _hMSDbContext.Appointment_Tbl.Update(appointment);
+                    await _hMSDbContext.SaveChangesAsync();
+
+                    // Send email to patient
+                    var patient = await _userManager.FindByIdAsync(appointment.PatientId);
+                    if (patient == null)
+                    {
+                        throw new ArgumentNullException($"Patient with ID : {appointment.PatientId} not found for the appointment.");
+                    }
+                    string reasonText = !string.IsNullOrEmpty(cancelReason) ? $"<br>Reason : {cancelReason}" : "";
+                    string body = $"Dear {patient.Name},<br>Your appointment on {appointment.AppointmentDate} has been <strong>Cancelled<strong> {reasonText}";
+                    await _emailService.SendEmailAsync(patient.Email, "Appointment Cancelled", body);
+                    await transaction.CommitAsync();
+
+                    return "Appointment cancelled successfully.";
+                }
+                catch (Exception ex)
+                { 
+                    throw new Exception();
+                }
+
         }
     }
 }

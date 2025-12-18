@@ -16,5 +16,11 @@ namespace HospitalManagementSystem.Bl.AppRepo.Doctor.IService
         Task<PatientDetailsDto> GetPatientDetailsById(string patientId);
         Task<PrescriptionDto> GetPatientPrescription(string patientId);
         Task<List<LabTestDto>> GetLabTests();
+
+
+        Task<List<DoctorViewAppointmentDto>> GetDoctorAppointments(string doctorId);
+        Task<List<LabTestDetailDto>> GetAvailableLabTestsAsync();
+
+        Task<PrescriptionResponseDto> CreatePrescriptionWithDetailsAsync(PrescriptionDto createPrescriptionDto, string doctorId);
     }
 }

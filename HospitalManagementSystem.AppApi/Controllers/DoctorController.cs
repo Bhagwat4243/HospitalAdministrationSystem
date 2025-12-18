@@ -155,5 +155,59 @@ namespace HospitalManagementSystem.AppApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving lab tests.");
             }
         }
+        [HttpGet("GetDoctorAppointments")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> GetDoctorAppointments(string doctorId)
+        {
+            try
+            {
+                var result = await _doctorService.GetDoctorAppointments(doctorId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+        [HttpGet]
+        [Route("GetAvailableLabTests")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> GetAvailableLabTestsAsync()
+        {
+            try
+            {
+                var result = await _doctorService.GetAvailableLabTestsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving available lab tests.");
+            }
+        }
+        [HttpPost]
+        [Route("CreatePrescriptionWithDetails")]
+        public async Task<IActionResult> CreatePrescriptionWithDetailsAsync([FromBody] PrescriptionDto createPrescriptionDto)
+        {
+            if (createPrescriptionDto == null)
+            {
+                return BadRequest("Prescription details cannot be null.");
+            }
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return BadRequest("Doctor ID cannot be null or empty.");
+            }
+            try
+            {
+                var result = await _doctorService.CreatePrescriptionWithDetailsAsync(createPrescriptionDto, doctorId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the prescription with details.");
+            }
+        }
     }
 }

@@ -17,6 +17,11 @@ namespace HospitalManagementSystem.Bl.AppRepo.Patient.IService
         Task<List<ViewPrescriptionDto>> GetPrescriptionList();
         Task<List<AppointmentDto>>GetAppointmentByPatientId(string patientId);
         Task<byte[]> DownloadPrescriptionPdf(Guid prescriptionId,string paientId);
+        Task<PendingLabTestListDto> GetPendingLabTestsForPaymentAsync(string patientId);
+        Task<string> PayForLabTestsAsync(LabTestPaymentRequestDto dto, string patientId);
+        Task<PatientLabTestResultsListDto> GetCompletedLabResultsAsync(string patientId);
+        Task<FileDto> DownloadLabReportAsync(Guid labTestId, string userId, List<string> roles);
+        Task<PrescriptionDto> GetPrescriptionByIdAsync(string loggedInPatientId, Guid prescriptionId);
 
     }
 }

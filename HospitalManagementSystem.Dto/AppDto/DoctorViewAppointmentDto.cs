@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace HospitalManagementSystem.Dto.AppDto
 {
-    public class PrescriptionDto
+    public class DoctorViewAppointmentDto
     {
-        public Guid PrescriptionId { get; set; }
         public Guid AppointmentId { get; set; }
-        public string Note { get; set; }
-
-        public string DoctorName { get; set; }
+        public string PatientName { get; set; }
+        public string PatientGender { get; set; }
+        public int PatientAge { get; set; }
         public DateTime AppointmentDate { get; set; }
-        public List<PrescriptionDetailsDto> Details { get; set; }
+        public decimal TotalPaid { get; set; }
+        public string Status { get; set; }
     }
 }

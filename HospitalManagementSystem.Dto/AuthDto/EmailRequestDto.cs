@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace HospitalManagementSystem.Dto.AuthDto
 {
-    public class LoginResponseDto
+    public class EmailRequestDto
     {
-        public UserDto user { get; set; }
-        public string Token { get; set; }
-        public List<string> roles { get; set; }
+        public string ToEmail { get; set; }
+        public string Subject { get; set; }
+        public string Body { get; set; }
     }
 }
