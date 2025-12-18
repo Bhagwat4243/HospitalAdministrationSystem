@@ -21,7 +21,7 @@ namespace HospitalManagementSystem.AppApi.Controllers
             try
             {
                 var doctors = await _adminService.GetAllDoctor();
-                if (doctors == null || !doctors.Any())
+                if (doctors == null || !doctors.Any())  
                 {
                     return NotFound("No doctors found.");
                 }
@@ -105,6 +105,25 @@ namespace HospitalManagementSystem.AppApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching nurses.");
             }
         }
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllAppointments()
+        {
+            try
+            {
+                var appointments = await _adminService.GetAllAppointment();
+                if (appointments == null || !appointments.Any())
+                {
+                    return NotFound("No appointments found.");
+                }
+                return Ok(appointments);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching appointments.");
+            }
+        }
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateLabTest([FromBody] LabTestDto labTestDto)
@@ -122,6 +141,89 @@ namespace HospitalManagementSystem.AppApi.Controllers
             {
                 // Log the exception (not implemented here)
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the lab test.");
+            }
+        }
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllLabTests()
+        {
+            try
+            {
+                var labTests = await _adminService.GetAllLabTests();
+                if (labTests == null || !labTests.Any())
+                {
+                    return NotFound("No lab tests found.");
+                }
+                return Ok(labTests);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (not implemented here)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching lab tests.");
+            }
+        }
+        [HttpPost]
+        [Authorize(Roles ="Admin")]
+        public async Task<IActionResult>AddNewLabTest(LabTestDto labTestDto)
+        {
+            if (labTestDto == null)
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var result = await _adminService.AddNewLabTest(labTestDto);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetPendingAppointmentsAsync()
+        {
+            try
+            {
+                var result=await _adminService.GetPendingAppointmentsAsync();
+                if (result == null || !result.Any())
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch( Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+        [HttpPost]
+        [Authorize(Roles ="Admin")]
+        public async Task<IActionResult> ConfirmAppointmentByAdminAsync(Guid appointmentId)
+        {
+            try
+            {
+                var result=await _adminService.ConfirmAppointmentByAdminAsync(appointmentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+        [HttpPost]
+        [Authorize(Roles ="Admin")]
+        public async Task<IActionResult> CancelAppointmentByAdminAsync(Guid appointmentId,string? cancelReason = null)
+        {
+            try
+            {
+                var result=await _adminService.CancelAppointmentByAdminAsync(appointmentId,cancelReason);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
             }
         }
     }
